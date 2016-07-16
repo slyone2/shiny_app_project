@@ -1,0 +1,9 @@
+name: project_shiny
+account: slyforme2
+server: shinyapps.io
+appId: 114844
+bundleId: 506792
+url: https://slyforme2.shinyapps.io/project_shiny/
+when: 1468789883.17688
+asMultiple: FALSE
+asStatic: FALSE

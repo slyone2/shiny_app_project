@@ -1,131 +1,59 @@
-library(shiny)
+library(ggplot2)
 
-# Load data processing file
-source("data_processing.R")
-themes <- sort(unique(data$theme))
+# Set working directory to where data files are
+#setwd("C:/data_science/data-products/project_shiny")
 
-# Shiny server
-shinyServer(
-  function(input, output) {
-    output$setid <- renderText({input$setid})
+# Read data
+NEI <- readRDS("./summarySCC_PM25.rds")
+SCC <- readRDS("./Source_Classification_Code.rds")
 
-    output$address <- renderText({
-        input$goButtonAdd
-        isolate(paste("http://brickset.com/sets/",
-                input$setid, sep=""))
+shinyServer(function(input, output) {
 
-    })
+  output$main_plot <- renderPlot({
 
-#     getPage<-function(url) {
-#         return(tags$iframe(src = url,
-#                            style="width:100%;",
-#                            frameborder="0", id="iframe",
-#                            height = "500px"))
-#     }
+    colours <- c("red", "orange", "blue", "yellow", "green")
 
-    openPage <- function(url) {
-        return(tags$a(href=url, "Click here!", target="_blank"))
+    if (input$city_selection == "NewYork") {
+      subsetNEI <- NEI[NEI$fips=="36061", ]
+      aggrData <- aggregate(Emissions ~ year, subsetNEI, sum)
+      xx <- barplot(height=aggrData$Emissions, names.arg=aggrData$year, ylim=c(0,6e+03), col=colours, xlab="Year", ylab="Total PM2.5 Emissions (Tons)", main="Total New York City PM2.5 Emissions (All Sources)")
     }
 
-    output$inc <- renderUI({
-        input$goButtonDirect
-        isolate(openPage(paste("http://brickset.com/sets/",
-                               input$setid, sep="")))
-        ## Can't open iframe below
-        # Got This request has been blocked;
-        # the content must be served over HTTPS error msg
-        # Mixed Content: The page at 'https://xiaodan.shinyapps.io/PolydronDatasetVisualization/'
-        # was loaded over HTTPS, but requested an insecure resource 'http://brickset.com/sets/'.
-        # This request has been blocked; the content must be served over HTTPS.
-        #isolate(getPage(paste("//brickset.com/sets/",
-        #                       input$setid, sep="")))
-    })
+    if (input$city_selection == "LosAngeles") {
+      subsetNEI <- NEI[NEI$fips=="06037", ]
+      aggrData <- aggregate(Emissions ~ year, subsetNEI, sum)
+      xx <- barplot(height=aggrData$Emissions, names.arg=aggrData$year, ylim=c(0,6e+04), col=colours, xlab="Year", ylab="Total PM2.5 Emissions (Tons)", main="Total LOS Angeles California PM2.5 Emissions (All Sources)")
+    }
+
+    if (input$city_selection == "Chicago") {
+      subsetNEI <- NEI[NEI$fips=="17031", ]
+      aggrData <- aggregate(Emissions ~ year, subsetNEI, sum)
+      xx <- barplot(height=aggrData$Emissions, names.arg=aggrData$year, ylim=c(0,3e+04), col=colours, xlab="Year", ylab="Total PM2.5 Emissions (Tons)", main="Total Chicago Illinois City PM2.5 Emissions (All Sources)")
+    }
+
+    if (input$city_selection == "Houston") {
+      subsetNEI <- NEI[NEI$fips=="48225", ]
+      aggrData <- aggregate(Emissions ~ year, subsetNEI, sum)
+      xx <- barplot(height=aggrData$Emissions, names.arg=aggrData$year, ylim=c(0,3e+03), col=colours, xlab="Year", ylab="Total PM2.5 Emissions (Tons)", main="Total Houston Texas City PM2.5 Emissions (All Sources)")
+    }
+
+    if (input$city_selection == "Philadelphia") {
+      subsetNEI <- NEI[NEI$fips=="42101", ]
+      aggrData <- aggregate(Emissions ~ year, subsetNEI, sum)
+      xx <- barplot(height=aggrData$Emissions, names.arg=aggrData$year, ylim=c(0,8e+03), col=colours, xlab="Year", ylab="Total PM2.5 Emissions (Tons)", main="Total Philadelphia Pennsylvania PM2.5 Emissions (All Sources)")
+    }
 
 
-    # Initialize reactive values
-    values <- reactiveValues()
-    values$themes <- themes
 
-    # Create event type checkbox
-    output$themesControl <- renderUI({
-        checkboxGroupInput('themes', 'Polydron Themes:',
-                           themes, selected = values$themes)
-    })
 
-    # Add observer on select-all button
-    observe({
-        if(input$selectAll == 0) return()
-        values$themes <- themes
-    })
+    if (input$legend) {
+      legend("topright", c("1999","2002","2005","2008"), cex=1.3, bty="n", fill=colours)
+    }
+    # Display the frequecy data label at the top of each bar plot
+    if (input$frequency_label) {
+      text(x = xx, y = aggrData$Emissions, label = aggrData$Emissions, pos = 3, cex = 0.8, col = "black")
+    }
 
-    # Add observer on clear-all button
-    observe({
-        if(input$clearAll == 0) return()
-        values$themes <- c() # empty list
-    })
+  })
+})
 
-    # Prepare dataset
-    dataTable <- reactive({
-        groupByTheme(data, input$timeline[1],
-                     input$timeline[2], input$pieces[1],
-                     input$pieces[2], input$themes)
-    })
-
-    dataTableBySetYear <- reactive({
-        groupByYearSet(data, input$timeline[1],
-                       input$timeline[2], input$pieces[1],
-                       input$pieces[2], input$themes)
-    })
-
-    dataTableByYear <- reactive({
-        groupByYearAgg(data, input$timeline[1],
-                    input$timeline[2], input$pieces[1],
-                    input$pieces[2], input$themes)
-    })
-
-    dataTableByPiece <- reactive({
-        groupByYearAll(data, input$timeline[1],
-                       input$timeline[2], input$pieces[1],
-                       input$pieces[2], input$themes)
-    })
-
-    dataTableByPieceAvg <- reactive({
-        groupByPieceAvg(data, input$timeline[1],
-                        input$timeline[2], input$pieces[1],
-                        input$pieces[2], input$themes)
-    })
-
-    dataTableByPieceThemeAvg <- reactive({
-        groupByPieceThemeAvg(data, input$timeline[1],
-                             input$timeline[2], input$pieces[1],
-                             input$pieces[2], input$themes)
-    })
-
-    # Render data table
-    output$dTable <- renderDataTable({
-        dataTable()
-    } #, options = list(bFilter = FALSE, iDisplayLength = 50)
-    )
-
-    output$setsByYear <- renderChart({
-        plotSetsCountByYear(dataTableBySetYear())
-    })
-
-    output$themesByYear <- renderChart({
-        plotThemesCountByYear(dataTableByYear())
-    })
-
-    output$piecesByYear <- renderChart({
-        plotPiecesByYear(dataTableByPiece())
-    })
-
-    output$piecesByYearAvg <- renderChart({
-        plotPiecesByYearAvg(dataTableByPieceAvg())
-    })
-
-    output$piecesByThemeAvg <- renderChart({
-        plotPiecesByThemeAvg(dataTableByPieceThemeAvg())
-    })
-
-  } # end of function(input, output)
-)
